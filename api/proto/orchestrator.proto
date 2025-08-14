@@ -1,0 +1,147 @@
+// api/proto/orchestrator.proto
+syntax = "proto3";
+
+package orchestrator;
+option go_package = "github.com/iuliansafta/micro-orchestrator/api/proto";
+
+service Orchestrator {
+    rpc Deploy(DeployRequest) returns (DeployResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+    rpc GetStatus(StatusRequest) returns (StatusResponse);
+    rpc StreamEvents(StreamRequest) returns (stream Event);
+    rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// Deployment messages
+message DeployRequest {
+    string name = 1;
+    string image = 2;
+    int32 replicas = 3;
+    double cpu = 4;
+    int64 memory = 5;
+    string region = 6;
+    map<string, string> labels = 7;
+    HealthCheck health_check = 8;
+    DeploymentStrategy strategy = 9;
+}
+
+message DeployResponse {
+    string deployment_id = 1;
+    string status = 2;
+    repeated string container_ids = 3;
+    double success_rate = 4;
+    string message = 5;
+}
+
+// Delete messages
+message DeleteRequest {
+    string deployment_id = 1;
+    string container_id = 2;
+}
+
+message DeleteResponse {
+    bool success = 1;
+    string message = 2;
+    repeated string deleted_container_ids = 3;
+}
+
+// Status messages
+message StatusRequest {
+    string deployment_id = 1;
+    string container_id = 2;
+}
+
+message StatusResponse {
+    repeated DeploymentStatus deployments = 1;
+    repeated ContainerStatus containers = 2;
+}
+
+message DeploymentStatus {
+    string deployment_id = 1;
+    string name = 2;
+    string status = 3;
+    int32 running_containers = 4;
+    int32 desired_containers = 5;
+    double success_rate = 6;
+    int64 created_at = 7;
+}
+
+message ContainerStatus {
+    string container_id = 1;
+    string deployment_id = 2;
+    string name = 3;
+    string state = 4;
+    string node_id = 5;
+    string region = 6;
+    bool healthy = 7;
+    int64 created_at = 8;
+    int64 last_health_check = 9;
+}
+
+message StreamRequest {
+    string deployment_id = 1;
+    repeated string event_types = 2;
+}
+
+message Event {
+    string type = 1;
+    string deployment_id = 2;
+    string container_id = 3;
+    string message = 4;
+    int64 timestamp = 5;
+    map<string, string> metadata = 6;
+}
+
+message MetricsRequest {
+    string time_range = 1;  // "1h", "24h", "7d"
+    repeated string regions = 2;
+}
+
+message MetricsResponse {
+    double deployment_success_rate = 1;
+    int32 total_containers = 2;
+    int32 healthy_containers = 3;
+    map<string, RegionMetrics> region_metrics = 4;
+    SchedulingMetrics scheduling_metrics = 5;
+    repeated RecentDeployment recent_deployments = 6;
+}
+
+// Supporting message types
+message HealthCheck {
+    string type = 1;  // "http", "tcp", "exec"
+    string endpoint = 2;
+    int32 interval_seconds = 3;
+    int32 timeout_seconds = 4;
+    int32 retries = 5;
+}
+
+message DeploymentStrategy {
+    string type = 1;  // "rolling", "blue-green", "canary"
+    int32 max_unavailable = 2;
+    int32 max_surge = 3;
+    int32 canary_percentage = 4;  // For canary deployments
+}
+
+message RegionMetrics {
+    int32 container_count = 1;
+    double cpu_utilization = 2;
+    double memory_utilization = 3;
+    double availability = 4;
+    int32 node_count = 5;
+}
+
+message SchedulingMetrics {
+    double avg_latency_ms = 1;
+    double p99_latency_ms = 2;
+    int64 total_decisions = 3;
+    int64 failed_decisions = 4;
+    map<string, int64> failure_reasons = 5;
+}
+
+message RecentDeployment {
+    string deployment_id = 1;
+    string name = 2;
+    string status = 3;
+    double success_rate = 4;
+    int64 timestamp = 5;
+}
