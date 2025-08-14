@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/iuliansafta/micro-orchestrator/pkg/health"
 	"github.com/iuliansafta/micro-orchestrator/pkg/scheduler"
 	"github.com/iuliansafta/micro-orchestrator/pkg/types"
 )
@@ -22,6 +24,9 @@ func main() {
 
 	// Init scheduler
 	sched := scheduler.NewScheduler(scheduler.Strategy(*strategy))
+
+	// Init health monitor
+	healthMonitor := health.NewHealthMonitor()
 
 	regions := []string{"us-east-1", "eu-west-1", "ap-southest-1"}
 
@@ -47,7 +52,11 @@ func main() {
 		}
 	}
 
-	go testAssingContainers(sched)
+	go testAssingContainers(sched, healthMonitor)
+
+	// Start healtchecks
+	ctx, cancel := context.WithCancel(context.Background())
+	go healthMonitor.Start(ctx)
 
 	// Wait for interrupt
 	sigChan := make(chan os.Signal, 1)
@@ -55,20 +64,31 @@ func main() {
 	<-sigChan
 
 	log.Println("Shutting down...")
+	cancel()
 }
 
-func testAssingContainers(schd *scheduler.Scheduler) {
+func testAssingContainers(schd *scheduler.Scheduler, hm *health.HealthMonitor) {
 	for i := range 2 {
 		container := &types.Container{
-			ID:        fmt.Sprintf("%d-%d", i, i),
-			Name:      fmt.Sprintf("%d-%d", i, i),
-			Image:     "ubuntu-1",
-			CPU:       float64(i) * 2.0,
-			Memory:    int64(i) * 16384,
-			Region:    "us-east-1",
-			Labels:    nil,
-			State:     types.ContainerPending,
+			ID:     fmt.Sprintf("%d-%d", i, i),
+			Name:   fmt.Sprintf("%d-%d", i, i),
+			Image:  "ubuntu-1",
+			CPU:    float64(i) * 2.0,
+			Memory: int64(i) * 16384,
+			Region: "us-east-1",
+			Labels: nil,
+			State:  types.ContainerRunning,
+			RestartPolicy: types.RestartPolicy{
+				Type:       "on-failure",
+				MaxRetries: 2,
+				Backoff:    10,
+			},
 			CreatedAt: time.Now(),
+			HealthCheck: &types.HealthCheck{
+				Type:     "http",
+				Endpoint: "/health",
+				Retries:  2,
+			},
 		}
 
 		node, err := schd.Schedule(container)
@@ -80,5 +100,7 @@ func testAssingContainers(schd *scheduler.Scheduler) {
 		container.NodeID = node.ID
 		container.Region = node.Region
 		container.State = types.ContainerRunning
+
+		hm.RegisterContainer(container)
 	}
 }
