@@ -47,27 +47,7 @@ func main() {
 		}
 	}
 
-	container := &types.Container{
-		ID:        fmt.Sprintf("%s-%d", "1", 1),
-		Name:      fmt.Sprintf("%s-%d", "MyApp", 1),
-		Image:     "ubuntu-1",
-		CPU:       2.0,
-		Memory:    16384,
-		Region:    "us-east-1",
-		Labels:    nil,
-		State:     types.ContainerPending,
-		CreatedAt: time.Now(),
-	}
-
-	node, err := sched.Schedule(container)
-
-	if err != nil {
-		log.Fatalf("failed to schedule the container: %v", err)
-	}
-
-	container.NodeID = node.ID
-	container.Region = node.Region
-	container.State = types.ContainerRunning
+	go testAssingContainers(sched)
 
 	// Wait for interrupt
 	sigChan := make(chan os.Signal, 1)
@@ -75,4 +55,30 @@ func main() {
 	<-sigChan
 
 	log.Println("Shutting down...")
+}
+
+func testAssingContainers(schd *scheduler.Scheduler) {
+	for i := range 2 {
+		container := &types.Container{
+			ID:        fmt.Sprintf("%d-%d", i, i),
+			Name:      fmt.Sprintf("%d-%d", i, i),
+			Image:     "ubuntu-1",
+			CPU:       float64(i) * 2.0,
+			Memory:    int64(i) * 16384,
+			Region:    "us-east-1",
+			Labels:    nil,
+			State:     types.ContainerPending,
+			CreatedAt: time.Now(),
+		}
+
+		node, err := schd.Schedule(container)
+
+		if err != nil {
+			log.Fatalf("failed to schedule the container: %v", err)
+		}
+
+		container.NodeID = node.ID
+		container.Region = node.Region
+		container.State = types.ContainerRunning
+	}
 }

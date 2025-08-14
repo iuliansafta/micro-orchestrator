@@ -19,7 +19,7 @@ const (
 )
 
 type Scheduler struct {
-	mu       sync.RWMutex
+	mu       sync.Mutex
 	nodes    map[string]*types.Node
 	strategy Strategy
 }
@@ -41,8 +41,8 @@ func (s *Scheduler) RegisterNode(node *types.Node) error {
 }
 
 func (s *Scheduler) Schedule(container *types.Container) (*types.Node, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	eligibleNodes := s.filterNodes(container)
 
@@ -55,12 +55,12 @@ func (s *Scheduler) Schedule(container *types.Container) (*types.Node, error) {
 	switch s.strategy {
 	case StrategyBinPack:
 		selectedNode = s.binPackStrategy(eligibleNodes)
-
-		// TBD with the rest of the strategies
+	case StrategySpread:
+		selectedNode = s.spreadStrategy(eligibleNodes)
 	}
 
 	if selectedNode == nil {
-		return nil, fmt.Errorf("insuficient resources on all nodes")
+		return nil, fmt.Errorf("insufficient resources on all nodes")
 	}
 
 	// update node resoruces
@@ -99,22 +99,8 @@ func (s *Scheduler) filterNodes(container *types.Container) []*types.Node {
 	return nodes
 }
 
+// binPackStrateg
 func (s *Scheduler) binPackStrategy(nodes []*types.Node) *types.Node {
-	// eligibleNodes := make([]*types.Node, 0)
-
-	// for _, node := range nodes {
-	// 	availbeCPU := node.TotalCPU - node.UsedCPU
-	// 	availabeMem := node.TotalMem - node.UsedMem
-
-	// 	if availbeCPU >= container.CPU && availabeMem >= container.Memory {
-	// 		eligibleNodes = append(eligibleNodes, node)
-	// 	}
-	// }
-
-	// if len(eligibleNodes) == 0 {
-	// 	return nil
-	// }
-
 	// Sort nodes by utilization
 	sort.Slice(nodes, func(i, j int) bool {
 		// calculate utilization for the i node
@@ -135,6 +121,19 @@ func (s *Scheduler) binPackStrategy(nodes []*types.Node) *types.Node {
 	})
 
 	// let's return the first node (most utilized one)
+	if len(nodes) > 0 {
+		return nodes[0]
+	}
+
+	return nil
+}
+
+// spreadStrategy least utilized first
+func (s *Scheduler) spreadStrategy(nodes []*types.Node) *types.Node {
+	sort.Slice(nodes, func(i int, j int) bool {
+		return len(nodes[i].Containers) < len(nodes[j].Containers)
+	})
+
 	if len(nodes) > 0 {
 		return nodes[0]
 	}
