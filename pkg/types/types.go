@@ -56,3 +56,11 @@ type RestartPolicy struct {
 	MaxRetries int    `json:"max_retries"`
 	Backoff    int    `json:"backoff_seconds"`
 }
+
+type Deployments struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	SuccessRate float64   `json:"success_rate"`
+	CreatedAt   time.Time `json:"created_at"`
+}
