@@ -2,11 +2,11 @@ package scheduler
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/iuliansafta/micro-orchestrator/pkg/metrics"
 	"github.com/iuliansafta/micro-orchestrator/pkg/types"
 )
 
@@ -22,12 +22,14 @@ type Scheduler struct {
 	mu       sync.Mutex
 	nodes    map[string]*types.Node
 	strategy Strategy
+	mc       *metrics.MetricsCollector
 }
 
-func NewScheduler(strategy Strategy) *Scheduler {
+func NewScheduler(strategy Strategy, metrics *metrics.MetricsCollector) *Scheduler {
 	return &Scheduler{
 		nodes:    make(map[string]*types.Node),
 		strategy: strategy,
+		mc:       metrics,
 	}
 }
 
@@ -43,10 +45,12 @@ func (s *Scheduler) RegisterNode(node *types.Node) error {
 func (s *Scheduler) Schedule(container *types.Container) (*types.Node, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	startTime := time.Now()
 
 	eligibleNodes := s.filterNodes(container)
 
 	if len(eligibleNodes) == 0 {
+		s.mc.SchedulingFailed("no eligible nodes found")
 		return nil, fmt.Errorf("no eligible nodes found")
 	}
 
@@ -60,6 +64,7 @@ func (s *Scheduler) Schedule(container *types.Container) (*types.Node, error) {
 	}
 
 	if selectedNode == nil {
+		s.mc.SchedulingFailed("insufficient resources on all nodes")
 		return nil, fmt.Errorf("insufficient resources on all nodes")
 	}
 
@@ -68,9 +73,8 @@ func (s *Scheduler) Schedule(container *types.Container) (*types.Node, error) {
 	selectedNode.UsedMem += container.Memory
 	selectedNode.Containers = append(selectedNode.Containers, container.ID)
 
-	log.Print("Scheduling success \n")
-	log.Printf("Container %+v \n", container)
-	log.Printf("On node %+v \n", selectedNode)
+	s.mc.SchedulingLatency(time.Since(startTime))
+	s.mc.SchedulingSuccess(selectedNode.Region)
 
 	return selectedNode, nil
 }

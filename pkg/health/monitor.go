@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/iuliansafta/micro-orchestrator/pkg/metrics"
 	"github.com/iuliansafta/micro-orchestrator/pkg/types"
 )
 
@@ -17,14 +18,16 @@ type HealthMonitor struct {
 	checkInterval time.Duration
 	restartChan   chan string
 	registerChan  chan *types.Container
+	mc            *metrics.MetricsCollector
 }
 
-func NewHealthMonitor() *HealthMonitor {
+func NewHealthMonitor(metrics *metrics.MetricsCollector) *HealthMonitor {
 	return &HealthMonitor{
 		containers:    make(map[string]*types.Container),
 		checkInterval: 10 * time.Second,
 		restartChan:   make(chan string, 100),
 		registerChan:  make(chan *types.Container, 100),
+		mc:            metrics,
 	}
 }
 
@@ -119,12 +122,12 @@ func (h *HealthMonitor) checkContainerHealth(container *types.Container) {
 		hc.ConsecutiveFails = 0
 		hc.Healthy = true
 
-		//TODO: update metrics healthceck success for container ID
+		h.mc.HealthCheckSuccess(container.ID)
 		log.Printf("Healthceck success container ID: %s", container.ID)
 	} else {
 		hc.ConsecutiveFails++
 
-		//TODO: healthceck failed container ID
+		h.mc.HealthCheckFailed(container.ID)
 		log.Printf("Healthceck failed container ID: %s ==> %v", container.ID, hc.ConsecutiveFails >= hc.Retries)
 		if hc.ConsecutiveFails >= hc.Retries {
 			hc.Healthy = false
@@ -157,9 +160,11 @@ func (h *HealthMonitor) handleUnhealtyContainer(container *types.Container) {
 	switch policy.Type {
 	case "always":
 		h.scheduleRestart(container, 0)
+		h.mc.ContainerRestarted(container.ID)
 	case "on-failure":
 		if container.State == types.ContainerFailed {
 			backoff := time.Duration(policy.Backoff) * time.Second
+			h.mc.ContainerRestarted(container.ID)
 			h.scheduleRestart(container, backoff)
 		}
 	case "never":
@@ -173,7 +178,6 @@ func (h *HealthMonitor) scheduleRestart(container *types.Container, backoff time
 			time.Sleep(backoff)
 		}
 		h.restartChan <- container.ID
-		//TODO: Metrics container restarted
 		log.Printf("Restarted container: %s", container.ID)
 	}()
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	pb "github.com/iuliansafta/micro-orchestrator/api/proto"
 	"github.com/iuliansafta/micro-orchestrator/pkg/health"
+	"github.com/iuliansafta/micro-orchestrator/pkg/metrics"
 	"github.com/iuliansafta/micro-orchestrator/pkg/scheduler"
 	"github.com/iuliansafta/micro-orchestrator/pkg/types"
 )
@@ -20,18 +21,21 @@ type Server struct {
 	deployments  map[string]*types.Deployments
 	eventStreams map[string]chan *pb.Event
 	hm           *health.HealthMonitor
+	mc           *metrics.MetricsCollector
 }
 
-func NewServer(sched *scheduler.Scheduler, hm *health.HealthMonitor) *Server {
+func NewServer(sched *scheduler.Scheduler, hm *health.HealthMonitor, mc *metrics.MetricsCollector) *Server {
 	return &Server{
 		scheduler:    sched,
 		deployments:  make(map[string]*types.Deployments),
 		eventStreams: make(map[string]chan *pb.Event),
 		hm:           hm,
+		mc:           mc,
 	}
 }
 
 func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployResponse, error) {
+	deploymentStart := time.Now()
 	deploymentID := generteID()
 
 	deployment := &types.Deployments{
@@ -123,6 +127,10 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 	} else {
 		deployment.Status = "FAILED"
 	}
+
+	duration := time.Since(deploymentStart)
+	s.mc.DeploymentCompleted(deployment.Status, deployment.SuccessRate)
+	s.mc.DeploymentDuration(deployment.Status, duration)
 
 	return &pb.DeployResponse{
 		DeploymentId: deploymentID,
