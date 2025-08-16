@@ -1,7 +1,8 @@
-.PHONY: build test run clean proto
+.PHONY: build test run clean proto docker-build docker-up docker-down docker-logs docker-clean
 
 build:
 	go build -o bin/orchestrator cmd/orchestrator/main.go
+	go build -o bin/cli cmd/cli/main.go
 
 install-tools:
 	@echo "Installing protoc-gen-go..."
@@ -38,12 +39,50 @@ fmt:
 lint:
 	golangci-lint run
 
-demo:
-	@echo "Starting orchestrator..."
+
+# DOCKER
+docker-build:
+	@echo "Building Docker images..."
+	@docker-compose build
+
+docker-up: docker-build
+	@echo "Starting services..."
 	@docker-compose up -d
+	@echo "Waiting for services to be ready..."
 	@sleep 5
-	@echo "Deploying test application..."
-	@./bin/cli -action=deploy -name=demo-app -replicas=10
-	@sleep 2
+	@echo "Services are up!"
+	@echo "Orchestrator API: http://localhost:50051"
+	@echo "Metrics: http://localhost:8080/metrics"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana: http://localhost:3000 (admin/admin)"
+
+docker-down:
+	@echo "Stopping services..."
+	@docker-compose down
+
+docker-logs:
+		@docker-compose logs -f
+
+docker-clean:
+		@echo "Cleaning up..."
+		@docker-compose down -v
+		@docker system prune -f
+
+demo: docker-up
+	@echo "Waiting for orchestrator to be ready..."
+	@sleep 10
+	@echo "Deploying demo application..."
+	@docker-compose exec orchestrator /app/cli \
+		-server=localhost:50051 \
+		-action=deploy \
+		-name=demo-app \
+		-image=nginx:latest \
+		-replicas=10 \
+		-cpu=0.5 \
+		-memory=512 \
+		-region=us-east-1
 	@echo "Checking metrics..."
-	@./bin/cli -action=metrics
+	@sleep 5
+	@docker-compose exec orchestrator /app/cli \
+		-server=localhost:50051 \
+		-action=metrics

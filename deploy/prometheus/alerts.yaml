@@ -1,0 +1,30 @@
+groups:
+  - name: orchestrator_alerts
+    interval: 30s
+    rules:
+      - alert: DeploymentSuccessRateLow
+        expr: orchestrator_deployment_success_rate < 99.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment success rate below 99.9%"
+          description: "Success rate is {{ $value }}%"
+
+      - alert: HighSchedulingLatency
+        expr: histogram_quantile(0.99, orchestrator_scheduling_latency_milliseconds) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 scheduling latency above 100ms"
+          description: "P99 latency is {{ $value }}ms"
+
+      - alert: ContainerRestartingFrequently
+        expr: rate(orchestrator_container_restarts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.container_id }} is restarting"

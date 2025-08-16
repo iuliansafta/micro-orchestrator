@@ -68,5 +68,23 @@ func main() {
 		fmt.Printf("ID: %s\n", resp.DeploymentId)
 		fmt.Printf("Status: %s\n", resp.Status)
 		fmt.Printf("Containers: %v\n", resp.ContainerIds)
+	case "metrics":
+		resp, err := client.GetMetrics(ctx, &pb.MetricsRequest{})
+		if err != nil {
+			log.Fatalf("Failed to get metrics: %v", err)
+		}
+
+		fmt.Printf("=== Orchestrator Metrics ===\n")
+		fmt.Printf("Deployment Success Rate: %.2f%%\n", resp.DeploymentSuccessRate)
+		fmt.Printf("Total Containers: %d\n", resp.TotalContainers)
+		fmt.Printf("Healthy Containers: %d\n", resp.HealthyContainers)
+
+		for region, metrics := range resp.RegionMetrics {
+			fmt.Printf("\nRegion: %s\n", region)
+			fmt.Printf("  Containers: %d\n", metrics.ContainerCount)
+			fmt.Printf("  CPU Utilization: %.2f%%\n", metrics.CpuUtilization)
+			fmt.Printf("  Memory Utilization: %.2f%%\n", metrics.MemoryUtilization)
+			fmt.Printf("  Availability: %.2f%%\n", metrics.Availability)
+		}
 	}
 }

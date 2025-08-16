@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -91,6 +92,7 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 		node, err := s.scheduler.Schedule(container)
 
 		if err != nil {
+			log.Printf("SCHEDULING_FAILED: %v", err)
 			s.emitEvent(&pb.Event{
 				Type:         "SCHEDULING_FAILED",
 				DeploymentId: deploymentID,
