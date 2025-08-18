@@ -2,7 +2,7 @@
 
 A container orchestration system built in Go, demonstrating distributed systems concepts, reliability patterns, and observability best practices.
 
-## 🚀 Features
+## Features
 
 - **Multi-Region Orchestration**: Simulates deployment across multiple regions with latency awareness
 - **Intelligent Scheduling**: Multiple strategies (binpack, spread) with resource-aware placement
@@ -12,7 +12,7 @@ A container orchestration system built in Go, demonstrating distributed systems 
 - **Observability**: Prometheus metrics and Grafana dashboards
 - **99.99% Success Rate Tracking**: Real-time deployment success monitoring
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Control Plane (Go)
@@ -26,14 +26,14 @@ Node Agents (Simulated)
 └── Region: ap-southeast-1
 ```
 
-## 🔧 Tech Stack
+## Tech Stack
 
 - **Language**: Go 1.24+
 - **RPC Framework**: gRPC with Protocol Buffers
 - **Observability**: Prometheus + Grafana
 - **Container Runtime**: Docker (simulated)
 
-## 📦 Installation
+## Installation & Development
 
 ```bash
 # Clone the repository
@@ -48,6 +48,29 @@ make proto
 
 # Build the orchestrator
 make build
+```
+
+
+## Demo
+
+```bash
+# start the servers and deploy some test containers
+make demo
+
+# Orchestrator API: http://localhost:50051
+# Metrics: http://localhost:8080/metrics
+# Prometheus: http://localhost:9090
+# Grafana: http://localhost:3000
+
+# deploy more containers
+docker-compose exec orchestrator /app/cli \
+                -server=localhost:50051 \
+                -action=deploy \
+                -name=demo-app \
+                -image=nginx:latest \
+                -replicas=2 \
+                -cpu=2 \
+                -memory=1024
 ```
 
 
