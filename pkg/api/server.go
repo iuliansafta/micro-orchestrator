@@ -50,13 +50,6 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 	s.deployments[deployment.ID] = deployment
 	s.mu.Unlock()
 
-	s.emitEvent(&pb.Event{
-		Type:         "DEPLOYMENT_STARTED",
-		DeploymentId: deploymentID,
-		Message:      fmt.Sprintf("Starting deployment of %s", req.Name),
-		Timestamp:    time.Now().Unix(),
-	})
-
 	// Create containers based on the replica
 	containerIDs := []string{}
 	successCount := 0
@@ -93,13 +86,7 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 
 		if err != nil {
 			log.Printf("SCHEDULING_FAILED: %v", err)
-			s.emitEvent(&pb.Event{
-				Type:         "SCHEDULING_FAILED",
-				DeploymentId: deploymentID,
-				ContainerId:  container.ID,
-				Message:      err.Error(),
-				Timestamp:    time.Now().Unix(),
-			})
+			s.mc.SchedulingFailed(err.Error())
 			continue
 		}
 
@@ -107,14 +94,6 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 		container.State = types.ContainerRunning
 		containerIDs = append(containerIDs, container.ID)
 		successCount++
-
-		s.emitEvent(&pb.Event{
-			Type:         "CONTAINER_SCHEDULED",
-			DeploymentId: deploymentID,
-			ContainerId:  container.ID,
-			Message:      fmt.Sprintf("Container scheduled on node %s in region %s", node.ID, node.Region),
-			Timestamp:    time.Now().Unix(),
-		})
 
 		// Register container for health checks
 		s.hm.RegisterContainer(container)
@@ -141,43 +120,26 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 	}, nil
 }
 
-func (s *Server) emitEvent(event *pb.Event) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Server) GetMetrics(ctx context.Context, req *pb.MetricsRequest) (*pb.MetricsResponse, error) {
+	metrics := s.mc.GetCurrentMetrics()
 
-	for _, eventChan := range s.eventStreams {
-		select {
-		case eventChan <- event:
-		default:
+	regionMetrics := make(map[string]*pb.RegionMetrics)
+
+	for region, rm := range metrics.RegionMetrics {
+		regionMetrics[region] = &pb.RegionMetrics{
+			ContainerCount:    rm.ContainerCount,
+			CpuUtilization:    rm.CPUUtilization,
+			MemoryUtilization: rm.MemoryUtilization,
+			Availability:      rm.Availability,
 		}
 	}
-}
 
-func (s *Server) StreamEvents(req *pb.StreamRequest, stream pb.Orchestrator_StreamEventsServer) error {
-	eventChan := make(chan *pb.Event, 100)
-	streamID := generteID()
-
-	s.mu.Lock()
-	s.eventStreams[streamID] = eventChan
-	s.mu.Unlock()
-
-	defer func() {
-		s.mu.Lock()
-		delete(s.eventStreams, streamID)
-		s.mu.Unlock()
-		close(eventChan)
-	}()
-
-	for {
-		select {
-		case event := <-eventChan:
-			if err := stream.Send(event); err != nil {
-				return err
-			}
-		case <-stream.Context().Done():
-			return nil
-		}
-	}
+	return &pb.MetricsResponse{
+		DeploymentSuccessRate: metrics.DeploymentSuccessRate,
+		TotalContainers:       int32(metrics.TotalContainers),
+		HealthyContainers:     int32(metrics.HealthyContainers),
+		RegionMetrics:         regionMetrics,
+	}, nil
 }
 
 func generteID() string {

@@ -15,7 +15,7 @@ type Strategy string
 const (
 	StrategyBinPack Strategy = "binpack" // maximize resource utilization by packing containers onto nodes as tightly as possible
 	StrategySpread  Strategy = "spread"  // distribute across nodes
-	StrategyRandom  Strategy = "random"
+	StrategyRandom  Strategy = "random"  // random TBD
 )
 
 type Scheduler struct {
@@ -103,7 +103,7 @@ func (s *Scheduler) filterNodes(container *types.Container) []*types.Node {
 	return nodes
 }
 
-// binPackStrateg
+// binPackStrategy
 func (s *Scheduler) binPackStrategy(nodes []*types.Node) *types.Node {
 	// Sort nodes by utilization
 	sort.Slice(nodes, func(i, j int) bool {

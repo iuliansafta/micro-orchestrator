@@ -64,7 +64,6 @@ func (h *HealthMonitor) handleContainerUpdates(ctx context.Context) {
 			// Start health check for this container
 			h.checkContainerHealth(container)
 		}
-		// case container := <-h.restartChan
 	}
 }
 
@@ -84,7 +83,7 @@ func (h *HealthMonitor) healthCheckLoop(ctx context.Context) {
 
 func (h *HealthMonitor) performHealthChecks() {
 	h.mu.RLock()
-	// mem eficienty
+	// mem eficiency
 	containers := make([]*types.Container, 0, len(h.containers))
 
 	for _, c := range h.containers {
@@ -94,7 +93,7 @@ func (h *HealthMonitor) performHealthChecks() {
 	}
 	h.mu.RUnlock()
 
-	var wg sync.WaitGroup
+	var wg sync.WaitGroup //TODO: Refactor with the new sync wait group in GO 1.25
 	for _, container := range containers {
 		wg.Add(1)
 		go func(c *types.Container) {

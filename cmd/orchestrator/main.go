@@ -25,7 +25,7 @@ import (
 var (
 	grpcPort    = flag.String("grpc-port", "50051", "gRPC service port")
 	metricsPort = flag.String("metrics-port", "8080", "Metrics server port")
-	strategy    = flag.String("strategy", "binpack", "Scheduling strategy (binpack, spread, random)")
+	strategy    = flag.String("strategy", "binpack", "Scheduling strategy (binpack, spread)")
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 
 	// Init health monitor
 	healthMonitor := health.NewHealthMonitor(metricsCollector)
-	registerTestNodes(sched)
+	registerNodes(sched, metricsCollector)
 
 	// Init API service
 	apiServer := api.NewServer(sched, healthMonitor, metricsCollector)
@@ -85,7 +85,7 @@ func main() {
 	grpcServer.GracefulStop()
 }
 
-func registerTestNodes(schd *scheduler.Scheduler) {
+func registerNodes(schd *scheduler.Scheduler, mc *metrics.MetricsCollector) {
 	regions := []string{"us-east-1", "eu-west-1", "ap-southest-1"}
 
 	for i, region := range regions {
@@ -107,6 +107,8 @@ func registerTestNodes(schd *scheduler.Scheduler) {
 			if err := schd.RegisterNode(node); err != nil {
 				log.Printf("failed to register node: %v\n", err)
 			}
+
+			mc.NodeRegistered(region)
 		}
 	}
 }
