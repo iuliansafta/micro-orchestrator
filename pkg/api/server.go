@@ -73,8 +73,16 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 		}
 
 		if req.HealthCheck != nil {
+			successHealthchecks := req.HealthCheck.Domain
+
+			// for demo purpose
+			if i%2 == 0 {
+				successHealthchecks = container.Name
+			}
+
 			container.HealthCheck = &types.HealthCheck{
 				Type:     req.HealthCheck.Type,
+				Domain:   successHealthchecks,
 				Endpoint: req.HealthCheck.Endpoint,
 				Interval: time.Duration(req.HealthCheck.IntervalSeconds) * time.Second,
 				Timeout:  time.Duration(req.HealthCheck.TimeoutSeconds) * time.Second,
@@ -82,10 +90,15 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 			}
 		}
 
+		log.Printf("container: %v\n", container.HealthCheck)
+
+		s.mc.UpdateContainerState(container.ID, "PENDING", container.Region)
+
 		node, err := s.scheduler.Schedule(container)
 
 		if err != nil {
 			log.Printf("SCHEDULING_FAILED: %v", err)
+			s.mc.UpdateContainerState(container.ID, "FAILED", container.Region)
 			s.mc.SchedulingFailed(err.Error())
 			continue
 		}
@@ -94,6 +107,8 @@ func (s *Server) Deploy(ctx context.Context, req *pb.DeployRequest) (*pb.DeployR
 		container.State = types.ContainerRunning
 		containerIDs = append(containerIDs, container.ID)
 		successCount++
+
+		s.mc.UpdateContainerState(container.ID, "RUNNING", container.Region)
 
 		// Register container for health checks
 		s.hm.RegisterContainer(container)

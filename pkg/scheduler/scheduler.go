@@ -87,10 +87,11 @@ func (s *Scheduler) filterNodes(container *types.Container) []*types.Node {
 			continue
 		}
 
+		// Remove the logic for the demo, since we don't provide health checks on the nodes
 		// check if node is outdated (not seen in the last 30 sec)
-		if time.Since(node.LastSeen) > 30*time.Second {
-			continue
-		}
+		// if time.Since(node.LastSeen) > 30*time.Second {
+		// 	continue
+		// }
 
 		availableCPU := node.TotalCPU - node.UsedCPU
 		availableMem := node.TotalMem - node.UsedMem

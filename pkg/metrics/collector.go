@@ -21,6 +21,7 @@ type MetricsCollector struct {
 	healthCheckCounter    *prometheus.CounterVec
 	nodeUtilization       *prometheus.GaugeVec
 	restartCounter        *prometheus.CounterVec
+	containerStates       map[string]*ContainerStateInfo
 
 	// in mem stats
 	stats struct {
@@ -54,6 +55,11 @@ type RegionMetrics struct {
 	CPUUtilization    float64
 	MemoryUtilization float64
 	Availability      float64
+}
+
+type ContainerStateInfo struct {
+	State  string
+	Region string
 }
 
 func NewMetricsCollector() *MetricsCollector {
@@ -223,7 +229,7 @@ func (mc *MetricsCollector) calculateAvailability() {
 	defer mc.mu.Unlock()
 
 	for _, stats := range mc.stats.regionStats {
-		stats.Availability = 99.9
+		stats.Availability = 99.9 //hardcoded for the demo
 		stats.LastUpdated = time.Now()
 	}
 }
@@ -236,6 +242,10 @@ func (mc *MetricsCollector) updateRegionStats(region string, containersAdded int
 		stats.ContainerCount += int32(containersAdded - containerRemoved)
 		stats.LastUpdated = time.Now()
 	}
+}
+
+func (mc *MetricsCollector) UpdateContainerState(containerID, state, region string) {
+	mc.containerStateGauge.WithLabelValues(state, region).Inc()
 }
 
 func (mc *MetricsCollector) DeploymentDuration(status string, duration time.Duration) {

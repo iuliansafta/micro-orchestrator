@@ -48,7 +48,8 @@ func main() {
 			Region:   *region,
 			HealthCheck: &pb.HealthCheck{
 				Type:            "http",
-				Endpoint:        "/health",
+				Endpoint:        "/",
+				Domain:          "google.com", //hardcoded for demo
 				IntervalSeconds: 10,
 				TimeoutSeconds:  5,
 				Retries:         3,

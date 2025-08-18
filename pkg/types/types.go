@@ -43,6 +43,7 @@ type Node struct {
 type HealthCheck struct {
 	Type             string        `json:"type"` // http, tcp, exec
 	Endpoint         string        `json:"endpoint"`
+	Domain           string        `json:"domain"` // used for the demo
 	Interval         time.Duration `json:"interval"`
 	Timeout          time.Duration `json:"timeout"`
 	Retries          int           `json:"retries"`

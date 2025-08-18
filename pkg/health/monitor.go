@@ -122,6 +122,7 @@ func (h *HealthMonitor) checkContainerHealth(container *types.Container) {
 		hc.Healthy = true
 
 		h.mc.HealthCheckSuccess(container.ID)
+		h.mc.UpdateContainerState(container.ID, "RUNNING", container.Region)
 		log.Printf("Healthceck success container ID: %s", container.ID)
 	} else {
 		hc.ConsecutiveFails++
@@ -131,6 +132,7 @@ func (h *HealthMonitor) checkContainerHealth(container *types.Container) {
 		if hc.ConsecutiveFails >= hc.Retries {
 			hc.Healthy = false
 			container.State = types.ContainerFailed
+			h.mc.UpdateContainerState(container.ID, "UNHEALTHY", container.Region)
 			h.handleUnhealtyContainer(container)
 		}
 	}
@@ -141,7 +143,9 @@ func (h *HealthMonitor) performHTTPCheck(container *types.Container, hc *types.H
 		Timeout: hc.Timeout,
 	}
 
-	url := fmt.Sprintf("http://%s:%s%s", container.NodeID, "80", hc.Endpoint)
+	url := fmt.Sprintf("https://%s%s", container.HealthCheck.Domain, hc.Endpoint)
+
+	log.Printf("URL To check: %s", url)
 
 	resp, err := client.Get(url)
 	if err != nil {
@@ -172,6 +176,7 @@ func (h *HealthMonitor) handleUnhealtyContainer(container *types.Container) {
 }
 
 func (h *HealthMonitor) scheduleRestart(container *types.Container, backoff time.Duration) {
+	h.mc.UpdateContainerState(container.ID, "RESTARTING", container.Region)
 	go func() {
 		if backoff > 0 {
 			time.Sleep(backoff)

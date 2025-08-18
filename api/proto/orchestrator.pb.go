@@ -903,9 +903,10 @@ type HealthCheck struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Type            string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "http", "tcp", "exec"
 	Endpoint        string                 `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	IntervalSeconds int32                  `protobuf:"varint,3,opt,name=interval_seconds,json=intervalSeconds,proto3" json:"interval_seconds,omitempty"`
-	TimeoutSeconds  int32                  `protobuf:"varint,4,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	Retries         int32                  `protobuf:"varint,5,opt,name=retries,proto3" json:"retries,omitempty"`
+	Domain          string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	IntervalSeconds int32                  `protobuf:"varint,4,opt,name=interval_seconds,json=intervalSeconds,proto3" json:"interval_seconds,omitempty"`
+	TimeoutSeconds  int32                  `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	Retries         int32                  `protobuf:"varint,6,opt,name=retries,proto3" json:"retries,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -950,6 +951,13 @@ func (x *HealthCheck) GetType() string {
 func (x *HealthCheck) GetEndpoint() string {
 	if x != nil {
 		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *HealthCheck) GetDomain() string {
+	if x != nil {
+		return x.Domain
 	}
 	return ""
 }
@@ -1357,13 +1365,14 @@ const file_api_proto_orchestrator_proto_rawDesc = "" +
 	"\x12recent_deployments\x18\x06 \x03(\v2\x1e.orchestrator.RecentDeploymentR\x11recentDeployments\x1a]\n" +
 	"\x12RegionMetricsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x121\n" +
-	"\x05value\x18\x02 \x01(\v2\x1b.orchestrator.RegionMetricsR\x05value:\x028\x01\"\xab\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x1b.orchestrator.RegionMetricsR\x05value:\x028\x01\"\xc3\x01\n" +
 	"\vHealthCheck\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1a\n" +
-	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12)\n" +
-	"\x10interval_seconds\x18\x03 \x01(\x05R\x0fintervalSeconds\x12'\n" +
-	"\x0ftimeout_seconds\x18\x04 \x01(\x05R\x0etimeoutSeconds\x12\x18\n" +
-	"\aretries\x18\x05 \x01(\x05R\aretries\"\x9b\x01\n" +
+	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12\x16\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\x12)\n" +
+	"\x10interval_seconds\x18\x04 \x01(\x05R\x0fintervalSeconds\x12'\n" +
+	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x12\x18\n" +
+	"\aretries\x18\x06 \x01(\x05R\aretries\"\x9b\x01\n" +
 	"\x12DeploymentStrategy\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12'\n" +
 	"\x0fmax_unavailable\x18\x02 \x01(\x05R\x0emaxUnavailable\x12\x1b\n" +

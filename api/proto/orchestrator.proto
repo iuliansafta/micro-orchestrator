@@ -110,9 +110,10 @@ message MetricsResponse {
 message HealthCheck {
     string type = 1;  // "http", "tcp", "exec"
     string endpoint = 2;
-    int32 interval_seconds = 3;
-    int32 timeout_seconds = 4;
-    int32 retries = 5;
+    string domain = 3;
+    int32 interval_seconds = 4;
+    int32 timeout_seconds = 5;
+    int32 retries = 6;
 }
 
 message DeploymentStrategy {
