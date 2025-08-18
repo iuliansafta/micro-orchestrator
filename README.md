@@ -14,6 +14,7 @@ A container orchestration system built in Go, demonstrating distributed systems 
 
 ## 🏗️ Architecture
 
+```
 Control Plane (Go)
 ├── Scheduler (Binpack/Spread strategies)
 ├── Health Monitor (Circuit breakers)
@@ -23,6 +24,7 @@ Node Agents (Simulated)
 ├── Region: us-east-1
 ├── Region: eu-west-1
 └── Region: ap-southeast-1
+```
 
 ## 🔧 Tech Stack
 
