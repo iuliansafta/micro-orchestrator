@@ -8,11 +8,9 @@ service Orchestrator {
     rpc Deploy(DeployRequest) returns (DeployResponse);
     rpc Delete(DeleteRequest) returns (DeleteResponse);
     rpc GetStatus(StatusRequest) returns (StatusResponse);
-    rpc StreamEvents(StreamRequest) returns (stream Event);
     rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
 }
 
-// Deployment messages
 message DeployRequest {
     string name = 1;
     string image = 2;
@@ -33,7 +31,6 @@ message DeployResponse {
     string message = 5;
 }
 
-// Delete messages
 message DeleteRequest {
     string deployment_id = 1;
     string container_id = 2;
@@ -76,20 +73,6 @@ message ContainerStatus {
     bool healthy = 7;
     int64 created_at = 8;
     int64 last_health_check = 9;
-}
-
-message StreamRequest {
-    string deployment_id = 1;
-    repeated string event_types = 2;
-}
-
-message Event {
-    string type = 1;
-    string deployment_id = 2;
-    string container_id = 3;
-    string message = 4;
-    int64 timestamp = 5;
-    map<string, string> metadata = 6;
 }
 
 message MetricsRequest {

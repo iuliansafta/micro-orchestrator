@@ -17,21 +17,19 @@ import (
 
 type Server struct {
 	pb.UnimplementedOrchestratorServer
-	mu           sync.Mutex
-	scheduler    *scheduler.Scheduler
-	deployments  map[string]*types.Deployments
-	eventStreams map[string]chan *pb.Event
-	hm           *health.HealthMonitor
-	mc           *metrics.MetricsCollector
+	mu          sync.Mutex
+	scheduler   *scheduler.Scheduler
+	deployments map[string]*types.Deployments
+	hm          *health.HealthMonitor
+	mc          *metrics.MetricsCollector
 }
 
 func NewServer(sched *scheduler.Scheduler, hm *health.HealthMonitor, mc *metrics.MetricsCollector) *Server {
 	return &Server{
-		scheduler:    sched,
-		deployments:  make(map[string]*types.Deployments),
-		eventStreams: make(map[string]chan *pb.Event),
-		hm:           hm,
-		mc:           mc,
+		scheduler:   sched,
+		deployments: make(map[string]*types.Deployments),
+		hm:          hm,
+		mc:          mc,
 	}
 }
 
