@@ -37,7 +37,7 @@ Node Agents (Simulated)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/micro-orchestrator.git
+git clone https://github.com/iuliansafta/micro-orchestrator.git
 cd micro-orchestrator
 
 # Install dependencies
